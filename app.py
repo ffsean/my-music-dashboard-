@@ -18,7 +18,7 @@ def clean_and_classify(title):
     clean_text = re.sub(r'[\s\-\[\]\(\)\【\】\?\!\.\_\,\/\\]', '', norm_title)
 
     # 3. 定義關鍵字庫
-    cover_keys = ["cover", "歌ってみた", "翻唱", "歌い手", "唄ってみた", "vocaloidcover", "utattemita", "翻唱曲", "커버", "試唱"]
+    cover_keys = ["cover", "歌ってみた", "翻唱", "歌い手", "唄ってみた", "vocaloidcover", "utattemita", "翻唱曲", "커버", "試唱", "弾き語り"　]
     original_keys = ["original", "mv", "originalsong", "オリジナル", "原創", "公式", "official"]
     clip_keys = ["切り抜き", "切抜き", "剪輯", "kirinuki", "highlights", "精華"]
 
