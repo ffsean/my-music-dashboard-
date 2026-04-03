@@ -15,11 +15,37 @@ def get_google_drive_direct_url(sharing_url):
 # 貼上你從 Google Drive 複製出來的原始「共用連結」
 original_url = "https://drive.google.com/file/d/1KXf02uOns1usXLEh06ahDYcYi6NmXnY7/view?usp=sharing"
 
-# 轉換並讀取
-direct_url = get_google_drive_direct_url(original_url)
-df = pd.read_csv(direct_url)
+# 2. 頁面配置 (必須放在最前面)
+st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌍")
 
-print("成功讀取資料！")
+# 3. 讀取資料
+original_url = "https://drive.google.com/file/d/1KXf02uOns1usXLEh06ahDYCYi6NmXnY7/view?usp=sharing"
+
+try:
+    direct_url = get_google_drive_direct_url(original_url)
+    # 使用快取，避免每次載入網頁都重新下載 CSV，速度會變快
+    @st.cache_data
+    def load_data(url):
+        return pd.read_csv(url)
+
+    df = load_data(direct_url)
+
+    # --- 網頁顯示內容 ---
+    st.title("🎤 2026 三月翻唱資料庫")
+    
+    # 搜尋功能
+    search_query = st.text_input("輸入歌曲標題或頻道名稱進行搜尋")
+    
+    if search_query:
+        # 模糊搜尋標題與頻道
+        filtered_df = df[df['標題'].str.contains(search_query, case=False, na=False) | 
+                         df['頻道'].str.contains(search_query, case=False, na=False)]
+        st.dataframe(filtered_df, use_container_width=True)
+    else:
+        st.dataframe(df, use_container_width=True)
+
+except Exception as e:
+    st.error(f"資料讀取失敗，請確認雲端硬碟共用權限。錯誤: {e}")
 # --- 頁面配置 ---
 st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌎")
 
