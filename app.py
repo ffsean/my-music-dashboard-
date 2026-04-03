@@ -4,17 +4,37 @@ import pandas as pd
 import os, pickle, time, unicodedata, re
 import re
 
-def get_google_drive_direct_url(sharing_url):
-    # 使用正規表達式提取 ID
-    match = re.search(r'/d/([^/]+)', sharing_url)
-    if match:
-        file_id = match.group(1)
-        return f"https://drive.google.com/uc?export=download&id={file_id}"
-    return sharing_url
+import streamlit as st
+import pandas as pd
 
-# 貼上你從 Google Drive 複製出來的原始「共用連結」
-original_url = "https://drive.google.com/file/d/1KXf02uOns1usXLEh06ahDYcYi6NmXnY7/view?usp=sharing"
+# 頁面設定
+st.set_page_config(layout="wide", page_title="2026 三月翻唱資料庫")
 
+# 直接使用測試成功的下載連結
+# 注意：這裡的 ID 必須跟你最新的 cleaned.csv 一致
+FILE_ID = "1KXf02uOns1usXLEh06ahDYcYi6NmXnY7"
+direct_url = f"https://drive.google.com/u/0/uc?id={FILE_ID}&export=download"
+
+
+try:
+    # 讀取資料 (加上 on_bad_lines 避免格式錯誤)
+    df = pd.read_csv(direct_url, on_bad_lines='skip')
+    
+    # 搜尋功能
+    search_query = st.text_input("搜尋歌曲、頻道或 ID")
+    
+    if search_query:
+        # 確保標題和頻道欄位存在
+        mask = df['標題'].astype(str).str.contains(search_query, case=False, na=False) | \
+               df['頻道'].astype(str).str.contains(search_query, case=False, na=False)
+        st.dataframe(df[mask], use_container_width=True)
+    else:
+        st.dataframe(df, use_container_width=True)
+
+except Exception as e:
+    st.error("讀取失敗！")
+    st.write("錯誤原因：", e)
+    st.info("請確認：1. 雲端硬碟檔案是否已設為『知道連結的任何人皆可檢視』。 2. 檔案 ID 是否正確。")
 # 2. 頁面配置 (必須放在最前面)
 st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌍")
 
