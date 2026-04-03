@@ -1,7 +1,14 @@
 import streamlit as st
 import pandas as pd
 import os, pickle, time, unicodedata, re
+import datetime
 
+def get_week_range(year, week):
+    # 根據年份與週次計算週一的日期
+    first_day_of_epoch = datetime.date(year, 1, 4)
+    start_of_week = first_day_of_epoch + datetime.timedelta(days=(week - 1) * 7 - first_day_of_epoch.weekday())
+    end_of_week = start_of_week + datetime.timedelta(days=6)
+    return f"W{week:02d} ({start_of_week.strftime('%m/%d')} - {end_of_week.strftime('%m/%d')})"
 # --- 頁面配置 ---
 st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌎")
 
@@ -97,10 +104,31 @@ try:
     df['觀看數'] = pd.to_numeric(df['觀看數'], errors='coerce').fillna(0).astype(int)
 
     # 2. 側邊欄控制
-    st.sidebar.header("🎯 篩選與排序")
-    weeks = sorted(df['週次'].unique())
-    selected_week = st.sidebar.select_slider("選擇週次", options=weeks)
+    
+st.sidebar.header("🎯 篩選與排序")
 
+# 1. 月份選擇
+df['月份'] = df['發布日期'].dt.month
+month_options = sorted(df['月份'].unique())
+selected_month = st.sidebar.selectbox("📅 選擇月份", options=month_options, format_func=lambda x: f"{x} 月")
+
+# 2. 根據月份過濾週次
+month_df = df[df['月份'] == selected_month]
+weeks_in_month = sorted(month_df['週次'].unique())
+
+# 3. 週次選擇 (顯示日期區間)
+# 取得目前年份 (假設數據都是 2026)
+current_year = 2026 
+week_labels = {w: get_week_range(current_year, w) for w in weeks_in_month}
+
+selected_week = st.sidebar.select_slider(
+    "🗓️ 選擇週次", 
+    options=weeks_in_month, 
+    format_func=lambda x: week_labels[x]
+)
+
+# --- 執行過濾 ---
+view_df = df[(df['週次'] == selected_week) & (df['語言'].isin(selected_langs))]
     selected_langs = st.sidebar.multiselect("語言過濾",
                                           options=["🇯🇵 日語", "🇰🇷 韓語", "🇨🇳 中文", "🌐 其他/英文"],
                                           default=["🇯🇵 日語", "🇰🇷 韓語", "🇨🇳 中文", "🌐 其他/英文"])
