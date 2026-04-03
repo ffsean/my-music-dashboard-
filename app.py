@@ -32,12 +32,49 @@ def clean_and_classify(title):
     
     return "🎵 其他影片"
 
-# --- 語言判定 ---
+#import re
+
+# --- 💡 日本歌手/角色漢字名單 (由你提供的清單整理) ---
+# 這裡放入你提供的一部分關鍵字作為示範，你可以根據需要繼續增減
+JAPANESE_SINGER_KEYWORDS = [
+    "坂本真綾", "一ノ瀬トキヤ", "一十木音也", "三浦あずさ", "如月千早", 
+    "秋月律子", "四条貴音", "我那覇響", "天海春香", "萩原雪歩", 
+    "菊地真", "水瀬伊織", "高槻やよい", "雙海亜美", "雙海真美",
+    "島村卯月", "渋谷凛", "本田未央", "白石紬", "桜守歌織",
+    "千石撫子", "花澤香菜", "早見沙織", "水瀬いのり", "悠木碧",
+    "星街すいせい", "宝鐘マリン", "兎田ぺこら", "湊あくあ", "不破湊",
+    "中島みゆき", "松任谷由実", "荒井由実", "米津玄師", "星野源",
+    "藤井風", "椎名林檎", "宇多田ヒカル", "坂本九", "山口百恵"
+]
+
 def detect_language(text):
     text = str(text)
-    if any('\u3040' <= c <= '\u30ff' for c in text): return "🇯🇵 日語"
-    if any('\uac00' <= c <= '\ud7af' for c in text): return "🇰🇷 韓語"
-    if any('\u4e00' <= c <= '\u9fff' for c in text): return "🇨🇳 中文"
+    
+    # 1. 優先檢查：是否包含「日文假名」(平假名/片假名) -> 100% 日語
+    if any('\u3040' <= c <= '\u30ff' for c in text): 
+        return "🇯🇵 日語"
+    
+    # 2. 次要檢查：標題是否包含「日本歌手名單」中的漢字關鍵字
+    # 這樣即使標題全是漢字 (如: 坂本真綾)，也能正確判定為日語
+    if any(name in text for name in JAPANESE_SINGER_KEYWORDS):
+        return "🇯🇵 日語"
+    
+    # 3. 補充檢查：常見的日系英文關鍵字
+    jp_eng_hints = ["covered", "official", "original", "mv", "utattemita", "kirinuki"]
+    if any(hint in text.lower() for hint in jp_eng_hints):
+        # 如果有這些詞且含有漢字，通常也是日系內容
+        if any('\u4e00' <= c <= '\u9fff' for c in text):
+            return "🇯🇵 日語"
+
+    # 4. 檢查「韓文」
+    if any('\uac00' <= c <= '\ud7af' for c in text): 
+        return "🇰🇷 韓語"
+        
+    # 5. 最後才是「中文」判定
+    # 剩下的漢字如果都沒對中上面的日本名單，才歸類為中文
+    if any('\u4e00' <= c <= '\u9fff' for c in text): 
+        return "🇨🇳 中文"
+        
     return "🌐 其他/英文"
 
 if 'active_vid' not in st.session_state:
