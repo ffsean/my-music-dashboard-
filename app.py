@@ -102,7 +102,7 @@ try:
     df['類別'] = df['標題'].apply(clean_and_classify)
     df['語言'] = df['標題'].apply(detect_language)
     df['觀看數'] = pd.to_numeric(df['觀看數'], errors='coerce').fillna(0).astype(int)
-    return data
+    
 
     df = load_data()
     # 2. 側邊欄控制
