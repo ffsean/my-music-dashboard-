@@ -2,7 +2,24 @@
 import streamlit as st
 import pandas as pd
 import os, pickle, time, unicodedata, re
+import re
 
+def get_google_drive_direct_url(sharing_url):
+    # 使用正規表達式提取 ID
+    match = re.search(r'/d/([^/]+)', sharing_url)
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+    return sharing_url
+
+# 貼上你從 Google Drive 複製出來的原始「共用連結」
+original_url = "https://drive.google.com/file/d/1KXf02uOns1usXLEh06ahDYcYi6NmXnY7/view?usp=sharing"
+
+# 轉換並讀取
+direct_url = get_google_drive_direct_url(original_url)
+df = pd.read_csv(direct_url)
+
+print("成功讀取資料！")
 # --- 頁面配置 ---
 st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌎")
 
