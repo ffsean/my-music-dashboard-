@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="2026 三月翻唱資料庫")
 
 # 直接使用測試成功的下載連結
 # 注意：這裡的 ID 必須跟你最新的 cleaned.csv 一致
-FILE_ID = "1KXf02uOns1usXLEh06ahDYcYi6NmXnY7"
+FILE_ID = "1_0MMLCoiJLWe-alF6BV7TGwxndba_DDp"
 direct_url = f"https://drive.google.com/u/0/uc?id={FILE_ID}&export=download"
 
 
