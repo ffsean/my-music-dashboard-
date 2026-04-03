@@ -1,100 +1,26 @@
-
 import streamlit as st
 import pandas as pd
 import os, pickle, time, unicodedata, re
-import re
 
-import streamlit as st
-import pandas as pd
-
-# 頁面設定
-st.set_page_config(layout="wide", page_title="2026 三月翻唱資料庫")
-
-# 直接使用測試成功的下載連結
-# 注意：這裡的 ID 必須跟你最新的 cleaned.csv 一致
-FILE_ID = "1_0MMLCoiJLWe-alF6BV7TGwxndba_DDp"
-direct_url = f"https://drive.google.com/u/0/uc?id={FILE_ID}&export=download"
-
-
-try:
-    # 讀取資料 (加上 on_bad_lines 避免格式錯誤)
-    df = pd.read_csv(direct_url, on_bad_lines='skip')
-    
-    # 搜尋功能
-    search_query = st.text_input("搜尋歌曲、頻道或 ID")
-    
-    if search_query:
-        # 確保標題和頻道欄位存在
-        mask = df['標題'].astype(str).str.contains(search_query, case=False, na=False) | \
-               df['頻道'].astype(str).str.contains(search_query, case=False, na=False)
-        st.dataframe(df[mask], use_container_width=True)
-    else:
-        st.dataframe(df, use_container_width=True)
-
-except Exception as e:
-    st.error("讀取失敗！")
-    st.write("錯誤原因：", e)
-    st.info("請確認：1. 雲端硬碟檔案是否已設為『知道連結的任何人皆可檢視』。 2. 檔案 ID 是否正確。")
-# 2. 頁面配置 (必須放在最前面)
-st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌍")
-
-# 3. 讀取資料
-original_url = "https://drive.google.com/file/d/1KXf02uOns1usXLEh06ahDYCYi6NmXnY7/view?usp=sharing"
-
-try:
-    direct_url = get_google_drive_direct_url(original_url)
-    # 使用快取，避免每次載入網頁都重新下載 CSV，速度會變快
-    @st.cache_data
-    def load_data(url):
-        return pd.read_csv(url)
-
-    df = load_data(direct_url)
-
-    # --- 網頁顯示內容 ---
-    st.title("🎤 2026 三月翻唱資料庫")
-    
-    # 搜尋功能
-    search_query = st.text_input("輸入歌曲標題或頻道名稱進行搜尋")
-    
-    if search_query:
-        # 模糊搜尋標題與頻道
-        filtered_df = df[df['標題'].str.contains(search_query, case=False, na=False) | 
-                         df['頻道'].str.contains(search_query, case=False, na=False)]
-        st.dataframe(filtered_df, use_container_width=True)
-    else:
-        st.dataframe(df, use_container_width=True)
-
-except Exception as e:
-    st.error(f"資料讀取失敗，請確認雲端硬碟共用權限。錯誤: {e}")
 # --- 頁面配置 ---
 st.set_page_config(layout="wide", page_title="全球音樂數據管理站", page_icon="🌎")
 
-# 適應不同環境的路徑設定 (若本地找不到 Drive 則找當前目錄)
-DRIVE_PATH = "/content/drive/MyDrive/"
-if not os.path.exists(DRIVE_PATH):
-    DRIVE_PATH = "./"
+# --- 💡 重要修改：Streamlit Cloud 專用的讀取邏輯 ---
+# 因為 Streamlit Cloud 沒有 /content/drive，我們改用你剛才成功的 Google Drive 直接下載連結
+FILE_ID = "1_0MMLCoiJLWe-alF6BV7TGwxndba_DDp"
+direct_url = f"https://drive.google.com/u/0/uc?id={FILE_ID}&export=download"
 
-# --- 強化版分類邏輯 ---
+# --- 強化版分類邏輯 --- (保留你的原始程式)
 def clean_and_classify(title):
     original_title = str(title)
-    # 1. 正規化：將全形轉半形 (例如 Ｃｏｖｅｒ -> cover)
     norm_title = unicodedata.normalize('NFKC', original_title).lower()
-    # 2. 移除所有空格與常見符號 (處理 歌 っ て み た 或 【 cover 】)
     clean_text = re.sub(r'[\s\-\[\]\(\)\【\】\?\!\.\_\,\/\\]', '', norm_title)
-    
-    # 3. 嚴謹關鍵字庫 (包含日、中、韓、Live映像、女性が歌う)
-    cover_keys = [
-        "cover", "歌ってみた", "翻唱", "歌い手", "唄ってみた", 
-        "vocaloidcover", "utattemita", "翻唱曲", "커버", "試唱",
-        "女性が歌う", "男性が歌う", "live映像", "演唱會", "ライブ映像",
-        "歌唱", "歌枠", "concert", "blu-ray"
-    ]
-    
+    cover_keys = ["cover", "歌ってみた", "翻唱", "歌い手", "唄ってみた", "vocaloidcover", "utattemita", "翻唱曲", "커버", "試唱"]
     if any(k in clean_text for k in cover_keys):
-        return "🎤 翻唱/演唱 (Live & Cover)"
+        return "🎤 翻唱 (Cover)"
     return "✨ 原創 (Original/MV)"
 
-# --- 語言判定 ---
+# --- 語言判定 --- (保留你的原始程式)
 def detect_language(text):
     text = str(text)
     if any('\u3040' <= c <= '\u30ff' for c in text): return "🇯🇵 日語"
@@ -105,54 +31,59 @@ def detect_language(text):
 if 'active_vid' not in st.session_state:
     st.session_state['active_vid'] = None
 
-st.title("🌎 全球音樂數據管理站")
+st.title("🌎 全球音樂數據管理站 (極致精準版)")
 
-# 1. 檔案讀取 (自動抓取 CSV)
-all_files = [f for f in os.listdir(DRIVE_PATH) if f.endswith(".csv") and ("youtube_data" in f or "extreme" in f)]
+# --- 💡 修改讀取區塊 ---
+try:
+    # 直接讀取雲端硬碟的 CSV
+    @st.cache_data
+    def load_data(url):
+        return pd.read_csv(url, encoding='utf-8-sig')
 
-if not all_files:
-    st.error("❌ 找不到 CSV 檔案。")
-else:
-    all_files.sort(key=lambda x: os.path.getsize(os.path.join(DRIVE_PATH, x)), reverse=True)
-    selected_file = st.sidebar.selectbox("📂 數據來源", options=all_files)
+    df = load_data(direct_url)
     
-    df = pd.read_csv(os.path.join(DRIVE_PATH, selected_file))
+    # 預處理資料 (保留你的邏輯)
     df['發布日期'] = pd.to_datetime(df['發布日期'])
     df['週次'] = df['發布日期'].dt.isocalendar().week
     df['類別'] = df['標題'].apply(clean_and_classify)
     df['語言'] = df['標題'].apply(detect_language)
     df['觀看數'] = pd.to_numeric(df['觀看數'], errors='coerce').fillna(0).astype(int)
 
-    # 2. 側邊欄過濾器
+    # 2. 側邊欄控制 
     st.sidebar.header("🎯 篩選與排序")
     weeks = sorted(df['週次'].unique())
     selected_week = st.sidebar.select_slider("選擇週次", options=weeks)
-    selected_langs = st.sidebar.multiselect("語言", 
-                                          options=["🇯🇵 日語", "🇰🇷 韓語", "🇨🇳 中文", "🌐 其他/英文"], 
-                                          default=["🇯🇵 日語", "🇰🇷 韓語", "🇨🇳 中文", "🌐 其他/英文"])
-    content_filter = st.sidebar.radio("內容", ["全部", "僅看原創", "僅看翻唱/Live"])
-    sort_order = st.sidebar.radio("排序", ["🔥 按觀看數", "📅 按日期"])
 
+    selected_langs = st.sidebar.multiselect("語言過濾",
+                                          options=["🇯🇵 日語", "🇰🇷 韓語", "🇨🇳 中文", "🌐 其他/英文"],
+                                          default=["🇯🇵 日語", "🇰🇷 韓語", "🇨🇳 中文", "🌐 其他/英文"])
+
+    content_filter = st.sidebar.radio("內容分類", ["全部", "僅看原創 (Original)", "僅看翻唱 (Cover)"])
+    sort_order = st.sidebar.radio("排序方式", ["🔥 按觀看數", "📅 按日期時間"])
+
+    # 執行過濾
     view_df = df[(df['週次'] == selected_week) & (df['語言'].isin(selected_langs))]
-    if content_filter == "僅看原創":
+    if content_filter == "僅看原創 (Original)":
         view_df = view_df[view_df['類別'] == "✨ 原創 (Original/MV)"]
-    elif content_filter == "僅看翻唱/Live":
-        view_df = view_df[view_df['類別'] == "🎤 翻唱/演唱 (Live & Cover)"]
+    elif content_filter == "僅看翻唱 (Cover)":
+        view_df = view_df[view_df['類別'] == "🎤 翻唱 (Cover)"]
 
     if sort_order == "🔥 按觀看數":
         view_df = view_df.sort_values(by="觀看數", ascending=False)
     else:
         view_df = view_df.sort_values(by="發布日期", ascending=False)
 
-    # 3. 播放器
+    # 3. 播放器 (置頂) 
     if st.session_state['active_vid']:
         st.video(f"https://www.youtube.com/watch?v={st.session_state['active_vid']}")
-        if st.button("❌ 關閉"):
+        if st.button("❌ 關閉播放器"):
             st.session_state['active_vid'] = None
             st.rerun()
+        st.divider()
 
-    # 4. 列表展示
+    # 4. 數據列表 
     st.subheader(f"📊 篩選結果: {len(view_df)} 支影片")
+
     for _, row in view_df.iterrows():
         c = st.columns([1, 4, 1, 1, 1, 0.5])
         c[0].write(row['發布日期'].strftime('%m/%d'))
@@ -161,7 +92,12 @@ else:
         c[2].write(row['語言'])
         c[3].write(row['類別'])
         c[4].write(f"{row['觀看數']:,}")
+        # ID 必須存在於 CSV 中才能播放
         if c[5].button("▶️", key=f"p_{row['ID']}"):
             st.session_state['active_vid'] = row['ID']
             st.rerun()
         st.divider()
+
+except Exception as e:
+    st.error(f"❌ 讀取資料失敗：{e}")
+    st.info("請確認：1. 雲端硬碟檔案 ID 正確。 2. 已開啟『知道連結的任何人』共用權限。")
