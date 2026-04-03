@@ -90,20 +90,22 @@ if 'active_vid' not in st.session_state:
 st.title("🌎 全球音樂數據管理站 (超連結版)")
 
 try:
+    # 1. 定義讀取資料的函數
+    # 這裡我們將 url 設為預設參數，呼叫時就不會噴錯
     @st.cache_data(ttl=3600)
-    def load_data(url):
-        return pd.read_csv(url, encoding='utf-8-sig')
+    def load_data(url=f"https://drive.google.com/u/0/uc?id=1_0MMLCoiJLWe-alF6BV7TGwxndba_DDp&export=download"):
+        data = pd.read_csv(url, encoding='utf-8-sig')
+        
+        # 轉換日期與建立時間維度
+        data['發布日期'] = pd.to_datetime(data['發布日期'])
+        data['週次'] = data['發布日期'].dt.isocalendar().week
+        data['月份'] = data['發布日期'].dt.month
+        
+        # 執行語言判定 (套用剛才修正的日文名單邏輯)
+        data['語言'] = data['標題'].apply(detect_language)
+        return data
 
-    df = load_data(direct_url)
-    
-    # 數據預處理
-    df['發布日期'] = pd.to_datetime(df['發布日期'])
-    df['週次'] = df['發布日期'].dt.isocalendar().week
-    df['類別'] = df['標題'].apply(clean_and_classify)
-    df['語言'] = df['標題'].apply(detect_language)
-    df['觀看數'] = pd.to_numeric(df['觀看數'], errors='coerce').fillna(0).astype(int)
-    
-
+    # 2. 呼叫函數 (現在不需要傳參數也不會錯了)
     df = load_data()
     # 2. 側邊欄控制
     
